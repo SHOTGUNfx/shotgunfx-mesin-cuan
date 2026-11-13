@@ -4,12 +4,14 @@ import pandas as pd
 from datetime import datetime, timezone
 import feedparser
 from PIL import Image
+from streamlit_lottie import st_lottie
+import requests
 
 # ================== BRANDING ==================
 BRAND_NAME = "SHOTGUNfx"
 BRAND_TAGLINE = "MESIN CUAN"
-BRAND_COLOR = "#FF3B3B"  # merah senapan
-BRAND_ACCENT = "#FFD700"  # gold
+BRAND_COLOR = "#FF3B3B"
+BRAND_ACCENT = "#FFD700"
 
 st.set_page_config(
     page_title=f"{BRAND_NAME} {BRAND_TAGLINE} | XAUUSD Fundamental",
@@ -17,20 +19,31 @@ st.set_page_config(
     layout="wide",
 )
 
+# Fungsi buat load animasi Lottie dari URL
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+# ANIMASI LOTTIE (Target/Senapan/Loading)
+# Gua ambil animasi gratis dari internet, kalau linknya mati, ganti aja
+lottie_target = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_x62chJ.json")
+
 # Custom CSS branding + ANIMASI
 st.markdown(f"""
 <style>
-    /* Animasi Glow buat Header */
+    /* Animasi Glow Header */
     @keyframes glow {{
         0% {{ box-shadow: 0 0 10px {BRAND_COLOR}; }}
         50% {{ box-shadow: 0 0 25px {BRAND_COLOR}, 0 0 10px {BRAND_ACCENT}; }}
         100% {{ box-shadow: 0 0 10px {BRAND_COLOR}; }}
     }}
     
-    /* Animasi Muter buat Logo */
-    @keyframes spin-slow {{
-        0% {{ transform: rotate(0deg); }}
-        100% {{ transform: rotate(360deg); }}
+    /* Animasi Teks Berjalan */
+    @keyframes marquee {{
+        0% {{ transform: translateX(100%); }}
+        100% {{ transform: translateX(-100%); }}
     }}
 
     .brand-header {{
@@ -38,8 +51,11 @@ st.markdown(f"""
         padding: 18px 24px;
         border-radius: 12px;
         margin-bottom: 10px;
-        animation: glow 3s infinite alternate; /* Efek nyala-mati */
+        animation: glow 3s infinite alternate;
+        position: relative;
+        overflow: hidden;
     }}
+    
     .brand-title {{
         color: white;
         font-size: 34px;
@@ -54,10 +70,25 @@ st.markdown(f"""
         letter-spacing: 3px;
         margin: 0;
     }}
-    
-    /* Animasi buat logo */
-    .logo-anim {{
-        animation: spin-slow 10s linear infinite;
+
+    /* Teks Berjalan (Ticker) */
+    .ticker-wrap {{
+        width: 100%;
+        overflow: hidden;
+        background-color: #1a1a1a;
+        padding: 5px 0;
+        border-radius: 5px;
+        border-left: 4px solid {BRAND_ACCENT};
+        margin-bottom: 15px;
+    }}
+    .ticker {{
+        display: inline-block;
+        white-space: nowrap;
+        padding-left: 100%;
+        animation: marquee 15s linear infinite;
+        color: {BRAND_ACCENT};
+        font-weight: bold;
+        font-size: 14px;
     }}
 
     .brand-footer {{
@@ -71,15 +102,13 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Header dengan Logo
-col_logo, col_header = st.columns([1, 10])
+# --- TAMPILAN HEADER + LOTTIE ---
+col_logo, col_header, col_anim = st.columns([1, 8, 2])
+
 with col_logo:
     try:
         img = Image.open("logo.png")
-        # Tambahin class "logo-anim" biar muter
-        st.markdown('<div class="logo-anim">', unsafe_allow_html=True)
         st.image(img, width=80)
-        st.markdown('</div>', unsafe_allow_html=True)
     except:
         st.markdown("<h1 style='text-align: center;'>🎯</h1>", unsafe_allow_html=True)
 
@@ -90,6 +119,19 @@ with col_header:
         <p class="brand-sub">XAUUSD FUNDAMENTAL DASHBOARD</p>
     </div>
     """, unsafe_allow_html=True)
+
+with col_anim:
+    if lottie_target:
+        st_lottie(lottie_target, height=100, key="target")
+
+# --- TEKS BERJALAN (TICKER) ---
+st.markdown(f"""
+<div class="ticker-wrap">
+    <div class="ticker">
+        🔥 SELAMAT DATANG DI SHOTGUNfx MESIN CUAN 🔥 | Pantau terus berita High-Impact AS untuk arah XAUUSD | Jangan lupa pasang Stop Loss!
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 bq = Biquote()
 
