@@ -11,21 +11,34 @@ BRAND_TAGLINE = "MESIN CUAN"
 BRAND_COLOR = "#FF3B3B"  # merah senapan
 BRAND_ACCENT = "#FFD700"  # gold
 
-# Setting halaman (icon pakai logo lu)
 st.set_page_config(
     page_title=f"{BRAND_NAME} {BRAND_TAGLINE} | XAUUSD Fundamental",
-    page_icon="logo.png" if True else "🥇", # Nanti Streamlit otomatis baca file logo.png lu
+    page_icon="logo.png",
     layout="wide",
 )
 
-# Custom CSS branding
+# Custom CSS branding + ANIMASI
 st.markdown(f"""
 <style>
+    /* Animasi Glow buat Header */
+    @keyframes glow {{
+        0% {{ box-shadow: 0 0 10px {BRAND_COLOR}; }}
+        50% {{ box-shadow: 0 0 25px {BRAND_COLOR}, 0 0 10px {BRAND_ACCENT}; }}
+        100% {{ box-shadow: 0 0 10px {BRAND_COLOR}; }}
+    }}
+    
+    /* Animasi Muter buat Logo */
+    @keyframes spin-slow {{
+        0% {{ transform: rotate(0deg); }}
+        100% {{ transform: rotate(360deg); }}
+    }}
+
     .brand-header {{
         background: linear-gradient(90deg, #111 0%, {BRAND_COLOR} 100%);
         padding: 18px 24px;
         border-radius: 12px;
         margin-bottom: 10px;
+        animation: glow 3s infinite alternate; /* Efek nyala-mati */
     }}
     .brand-title {{
         color: white;
@@ -41,6 +54,12 @@ st.markdown(f"""
         letter-spacing: 3px;
         margin: 0;
     }}
+    
+    /* Animasi buat logo */
+    .logo-anim {{
+        animation: spin-slow 10s linear infinite;
+    }}
+
     .brand-footer {{
         text-align: center;
         color: #888;
@@ -56,11 +75,12 @@ st.markdown(f"""
 col_logo, col_header = st.columns([1, 10])
 with col_logo:
     try:
-        # Baca logo dari file lokal
         img = Image.open("logo.png")
+        # Tambahin class "logo-anim" biar muter
+        st.markdown('<div class="logo-anim">', unsafe_allow_html=True)
         st.image(img, width=80)
+        st.markdown('</div>', unsafe_allow_html=True)
     except:
-        # Kalau logo belum ada, tampilin emoji
         st.markdown("<h1 style='text-align: center;'>🎯</h1>", unsafe_allow_html=True)
 
 with col_header:
@@ -98,14 +118,9 @@ st.divider()
 def analisa_dampak(actual, forecast, event_name):
     if actual is None or forecast is None:
         return "⚪ Belum ada data Actual/Forecast. Pasar masih menunggu rilis."
-    
     try:
-        # Bersihkan string (misal hapus tanda % atau K/M)
         a = float(str(actual).replace('%', '').replace('K', '').replace('M', '').strip())
         f = float(str(forecast).replace('%', '').replace('K', '').replace('M', '').strip())
-        
-        # Logika sederhana: Kalau Actual > Forecast (Inflasi/Pertumbuhan)
-        # Biasanya bikin USD kuat -> Gold turun. (Kecuali event tertentu)
         if a > f:
             return f"🔴 **Actual ({actual}) > Forecast ({forecast})**. Data lebih baik dari ekspektasi. USD berpotensi menguat, **GOLD cenderung tertekan/Turun**."
         elif a < f:
@@ -131,13 +146,10 @@ try:
                     time_str = dt.strftime("%d %b %H:%M UTC")
                 except:
                     pass
-            
             actual = ev.get("actual")
             forecast = ev.get("forecast")
             previous = ev.get("previous")
             event_name = ev.get("name", "-")
-            
-            # Ambil penjelasan dampak
             penjelasan = analisa_dampak(actual, forecast, event_name)
 
             rows.append({
@@ -148,10 +160,7 @@ try:
                 "Previous": f"{previous}" if previous is not None else "—",
                 "Analisa Dampak ke Gold": penjelasan
             })
-        
-        # Tampilkan tabel
-        df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
         st.caption("Logika sederhana: Actual vs Forecast. (Catatan: Fundamental makro lebih kompleks, ini hanya panduan awal).")
     else:
         st.info("Tidak ada event high-impact US minggu ini.")
