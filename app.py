@@ -3,6 +3,7 @@ from biquote import Biquote
 import pandas as pd
 from datetime import datetime, timezone
 import feedparser
+from PIL import Image
 
 # ================== BRANDING ==================
 BRAND_NAME = "SHOTGUNfx"
@@ -10,9 +11,10 @@ BRAND_TAGLINE = "MESIN CUAN"
 BRAND_COLOR = "#FF3B3B"  # merah senapan
 BRAND_ACCENT = "#FFD700"  # gold
 
+# Setting halaman (icon pakai logo lu)
 st.set_page_config(
     page_title=f"{BRAND_NAME} {BRAND_TAGLINE} | XAUUSD Fundamental",
-    page_icon="🥇",
+    page_icon="logo.png" if True else "🥇", # Nanti Streamlit otomatis baca file logo.png lu
     layout="wide",
 )
 
@@ -50,13 +52,24 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown(f"""
-<div class="brand-header">
-    <p class="brand-title">{BRAND_NAME} <span>{BRAND_TAGLINE}</span></p>
-    <p class="brand-sub">XAUUSD FUNDAMENTAL DASHBOARD</p>
-</div>
-""", unsafe_allow_html=True)
+# Header dengan Logo
+col_logo, col_header = st.columns([1, 10])
+with col_logo:
+    try:
+        # Baca logo dari file lokal
+        img = Image.open("logo.png")
+        st.image(img, width=80)
+    except:
+        # Kalau logo belum ada, tampilin emoji
+        st.markdown("<h1 style='text-align: center;'>🎯</h1>", unsafe_allow_html=True)
+
+with col_header:
+    st.markdown(f"""
+    <div class="brand-header">
+        <p class="brand-title">{BRAND_NAME} <span>{BRAND_TAGLINE}</span></p>
+        <p class="brand-sub">XAUUSD FUNDAMENTAL DASHBOARD</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 bq = Biquote()
 
@@ -81,6 +94,27 @@ except Exception as e:
 
 st.divider()
 
+# --- FUNGSI ANALISA FUNDAMENTAL ---
+def analisa_dampak(actual, forecast, event_name):
+    if actual is None or forecast is None:
+        return "⚪ Belum ada data Actual/Forecast. Pasar masih menunggu rilis."
+    
+    try:
+        # Bersihkan string (misal hapus tanda % atau K/M)
+        a = float(str(actual).replace('%', '').replace('K', '').replace('M', '').strip())
+        f = float(str(forecast).replace('%', '').replace('K', '').replace('M', '').strip())
+        
+        # Logika sederhana: Kalau Actual > Forecast (Inflasi/Pertumbuhan)
+        # Biasanya bikin USD kuat -> Gold turun. (Kecuali event tertentu)
+        if a > f:
+            return f"🔴 **Actual ({actual}) > Forecast ({forecast})**. Data lebih baik dari ekspektasi. USD berpotensi menguat, **GOLD cenderung tertekan/Turun**."
+        elif a < f:
+            return f"🟢 **Actual ({actual}) < Forecast ({forecast})**. Data lebih buruk dari ekspektasi. USD berpotensi melemah, **GOLD cenderung naik**."
+        else:
+            return f"⚪ **Actual ({actual}) = Forecast ({forecast})**. Sesuai ekspektasi pasar. Volatilitas biasanya rendah."
+    except:
+        return "⚪ Format angka tidak standar, tidak bisa dianalisa otomatis."
+
 # --- Kalender ---
 st.subheader("📅 Kalender High-Impact (US) — Fokus Gold")
 try:
@@ -97,15 +131,28 @@ try:
                     time_str = dt.strftime("%d %b %H:%M UTC")
                 except:
                     pass
+            
+            actual = ev.get("actual")
+            forecast = ev.get("forecast")
+            previous = ev.get("previous")
+            event_name = ev.get("name", "-")
+            
+            # Ambil penjelasan dampak
+            penjelasan = analisa_dampak(actual, forecast, event_name)
+
             rows.append({
                 "Waktu": time_str,
-                "Event": ev.get("name", "-"),
-                "Actual": f"{ev.get('actual')}" if ev.get("actual") is not None else "—",
-                "Forecast": f"{ev.get('forecast')}" if ev.get("forecast") is not None else "—",
-                "Previous": f"{ev.get('previous')}" if ev.get("previous") is not None else "—",
+                "Event": event_name,
+                "Actual": f"{actual}" if actual is not None else "—",
+                "Forecast": f"{forecast}" if forecast is not None else "—",
+                "Previous": f"{previous}" if previous is not None else "—",
+                "Analisa Dampak ke Gold": penjelasan
             })
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-        st.caption("Actual vs Forecast: selisih jauh = volatilitas tinggi.")
+        
+        # Tampilkan tabel
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.caption("Logika sederhana: Actual vs Forecast. (Catatan: Fundamental makro lebih kompleks, ini hanya panduan awal).")
     else:
         st.info("Tidak ada event high-impact US minggu ini.")
 except Exception as e:
