@@ -6,6 +6,7 @@ import feedparser
 from PIL import Image
 from streamlit_lottie import st_lottie
 import requests
+import base64
 
 # ================== BRANDING ==================
 BRAND_NAME = "SHOTGUNfx"
@@ -13,11 +14,28 @@ BRAND_TAGLINE = "MESIN CUAN"
 BRAND_COLOR = "#FF3B3B"
 BRAND_ACCENT = "#FFD700"
 
+# --- FUNGSI UNTUK SET FAVICON DARI GAMBAR LOKAL ---
+# Ini trik biar logo lu maksa muncul di tab browser
+def get_image_base64(image_path):
+    try:
+        with open(image_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return None
+
+logo_b64 = get_image_base64("logo.png")
+favicon_html = f'<link rel="icon" type="image/png" href="data:image/png;base64,{logo_b64}">' if logo_b64 else ""
+
 st.set_page_config(
     page_title=f"{BRAND_NAME} {BRAND_TAGLINE} | XAUUSD Fundamental",
-    page_icon="logo.png",
+    page_icon="logo.png" if logo_b64 else "🎯",
     layout="wide",
 )
+
+# Paksa HTML Favicon
+if favicon_html:
+    st.markdown(favicon_html, unsafe_allow_html=True)
 
 # Fungsi buat load animasi Lottie dari URL
 def load_lottieurl(url: str):
@@ -26,9 +44,9 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
-# ANIMASI LOTTIE (Target/Senapan/Loading)
-# Gua ambil animasi gratis dari internet, kalau linknya mati, ganti aja
-lottie_target = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_x62chJ.json")
+# ANIMASI LOTTIE: Radar/Target/Senapan (Bukan koin emas)
+# Gua pakai animasi radar/target yang cocok sama tema SHOTGUN
+lottie_target = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_t1a62jva.json")
 
 # Custom CSS branding + ANIMASI
 st.markdown(f"""
