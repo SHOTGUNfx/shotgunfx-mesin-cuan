@@ -2,3 +2,5 @@ streamlit
 biquote
 pandas
 feedparser
+streamlit-lottie
+requests
